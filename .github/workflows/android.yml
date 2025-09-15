@@ -1,4 +1,4 @@
-name: Build Evolver APK
+name: Build Evolver APK with Extended Stubs
 
 on:
   workflow_dispatch:
@@ -120,6 +120,23 @@ jobs:
             </application>
         </manifest>
         EOF
+
+        # Create extended stubs for common AOSP/Evolver classes
+        mkdir -p EvolverStandalone/app/src/main/java/com/android/internal
+        echo "package com.android.internal; public class R {}" > EvolverStandalone/app/src/main/java/com/android/internal/R.java
+        echo "package com.android.internal.util; public class SomeInternalUtils {}" > EvolverStandalone/app/src/main/java/com/android/internal/util/SomeInternalUtils.java
+
+        mkdir -p EvolverStandalone/app/src/main/java/org/evolutionx/evolver/internal
+        echo "package org.evolutionx.evolver.internal; public class EvolverInternal {}" > EvolverStandalone/app/src/main/java/org/evolutionx/evolver/internal/EvolverInternal.java
+
+        mkdir -p EvolverStandalone/app/src/main/java/com/android/settingslib
+        echo "package com.android.settingslib; public class SettingsLib {}" > EvolverStandalone/app/src/main/java/com/android/settingslib/SettingsLib.java
+
+        mkdir -p EvolverStandalone/app/src/main/java/android/os
+        echo "package android.os; public class UserHandle {}" > EvolverStandalone/app/src/main/java/android/os/UserHandle.java
+
+        mkdir -p EvolverStandalone/app/src/main/java/android/content/pm
+        echo "package android.content.pm; public class PackageParser {}" > EvolverStandalone/app/src/main/java/android/content/pm/PackageParser.java
 
     - name: Build APK (retry 3 times)
       working-directory: EvolverStandalone
