@@ -24,16 +24,18 @@ jobs:
     - name: Install Android SDK
       uses: android-actions/setup-android@v2
 
-    - name: Prepare Gradle Project
+    - name: Prepare Minimal Gradle Project
       run: |
         mkdir -p EvolverStandalone/app/src
         cp -r * EvolverStandalone/app/src/ || true
 
+        # Settings
         cat > EvolverStandalone/settings.gradle <<'EOF'
         rootProject.name = "EvolverStandalone"
         include(":app")
         EOF
 
+        # Top-level build.gradle
         cat > EvolverStandalone/build.gradle <<'EOF'
         buildscript {
             repositories {
@@ -53,12 +55,14 @@ jobs:
         }
         EOF
 
+        # Gradle properties
         cat > EvolverStandalone/gradle.properties <<'EOF'
         org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         android.useAndroidX=true
         android.enableJetifier=true
         EOF
 
+        # App build.gradle
         mkdir -p EvolverStandalone/app
         cat > EvolverStandalone/app/build.gradle <<'EOF'
         plugins {
@@ -93,6 +97,7 @@ jobs:
         }
         EOF
 
+        # Minimal AndroidManifest
         mkdir -p EvolverStandalone/app/src/main
         cat > EvolverStandalone/app/src/main/AndroidManifest.xml <<'EOF'
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -117,9 +122,8 @@ jobs:
       working-directory: EvolverStandalone
       run: ./gradlew assembleDebug --stacktrace
 
-       - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Evolver-debug-apk
         path: EvolverStandalone/app/build/outputs/apk/debug/*.apk
-
