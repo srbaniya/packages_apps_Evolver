@@ -1,0 +1,124 @@
+name: Build Evolver APK
+
+on:
+  workflow_dispatch:   # allows manual run
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: "17"
+        distribution: "temurin"
+
+    - name: Install Android SDK
+      uses: android-actions/setup-android@v2
+
+    - name: Prepare Gradle Project
+      run: |
+        mkdir -p EvolverStandalone/app/src
+        cp -r * EvolverStandalone/app/src/ || true
+
+        cat > EvolverStandalone/settings.gradle <<'EOF'
+        rootProject.name = "EvolverStandalone"
+        include(":app")
+        EOF
+
+        cat > EvolverStandalone/build.gradle <<'EOF'
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath "com.android.tools.build:gradle:8.1.2"
+                classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+
+        cat > EvolverStandalone/gradle.properties <<'EOF'
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
+
+        mkdir -p EvolverStandalone/app
+        cat > EvolverStandalone/app/build.gradle <<'EOF'
+        plugins {
+            id 'com.android.application'
+            id 'kotlin-android'
+        }
+
+        android {
+            namespace "org.evolutionx.evolver"
+            compileSdk 34
+
+            defaultConfig {
+                applicationId "org.evolutionx.evolver"
+                minSdk 29
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+                }
+            }
+        }
+
+        dependencies {
+            implementation "androidx.appcompat:appcompat:1.6.1"
+            implementation "com.google.android.material:material:1.9.0"
+            implementation "androidx.constraintlayout:constraintlayout:2.1.4"
+        }
+        EOF
+
+        mkdir -p EvolverStandalone/app/src/main
+        cat > EvolverStandalone/app/src/main/AndroidManifest.xml <<'EOF'
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="org.evolutionx.evolver">
+
+            <application
+                android:allowBackup="true"
+                android:label="Evolver"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.MaterialComponents.DayNight">
+                <activity android:name=".MainActivity">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN"/>
+                        <category android:name="android.intent.category.LAUNCHER"/>
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+    - name: Build APK
+      working-directory: EvolverStandalone
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: Evolver-debug-apk
+        path: EvolverStandalone/app/build/outputs/apk/debug/*.apk
