@@ -121,9 +121,12 @@ jobs:
         </manifest>
         EOF
 
-    - name: Build APK
+    - name: Build APK (retry 3 times)
       working-directory: EvolverStandalone
-      run: gradle assembleDebug --stacktrace
+      run: |
+        for i in 1 2 3; do
+          gradle assembleDebug --no-build-cache && break || sleep 10
+        done
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
